@@ -1672,6 +1672,25 @@ _git_add ()
 	__git_complete_index_file "$complete_opt"
 }
 
+_gad ()
+{
+	case "$cur" in
+	--*)
+		__gitcomp "
+			--interactive --refresh --patch --update --dry-run
+			--ignore-errors --intent-to-add --force --edit --chmod=
+			"
+		return
+	esac
+
+	local complete_opt="--others --modified --directory --no-empty-directory"
+	if test -n "$(__git_find_on_cmdline "-u --update")"
+	then
+		complete_opt="--modified"
+	fi
+	__git_complete_index_file "$complete_opt"
+}
+
 _git_archive ()
 {
 	case "$cur" in
@@ -1755,6 +1774,42 @@ _git_branch ()
 	esac
 }
 
+_gbr ()
+{
+	local i c=1 only_local_ref="n" has_r="n"
+
+	while [ $c -lt $cword ]; do
+		i="${words[c]}"
+		case "$i" in
+		-d|--delete|-m|--move)	only_local_ref="y" ;;
+		-r|--remotes)		has_r="y" ;;
+		esac
+		((c++))
+	done
+
+	case "$cur" in
+	--set-upstream-to=*)
+		__git_complete_refs --cur="${cur##--set-upstream-to=}"
+		;;
+	--*)
+		__gitcomp "
+			--color --no-color --verbose --abbrev= --no-abbrev
+			--track --no-track --contains --no-contains --merged --no-merged
+			--set-upstream-to= --edit-description --list
+			--unset-upstream --delete --move --copy --remotes
+			--column --no-column --sort= --points-at
+			"
+		;;
+	*)
+		if [ $only_local_ref = "y" -a $has_r = "n" ]; then
+			__gitcomp_direct "$(__git_heads "" "$cur" " ")"
+		else
+			__git_complete_refs
+		fi
+		;;
+	esac
+}
+
 _git_bundle ()
 {
 	local cmd="${words[2]}"
@@ -1776,6 +1831,34 @@ _git_bundle ()
 }
 
 _git_checkout ()
+{
+	__git_has_doubledash && return
+
+	case "$cur" in
+	--conflict=*)
+		__gitcomp "diff3 merge" "" "${cur##--conflict=}"
+		;;
+	--*)
+		__gitcomp "
+			--quiet --ours --theirs --track --no-track --merge
+			--conflict= --orphan --patch --detach --ignore-skip-worktree-bits
+			--recurse-submodules --no-recurse-submodules
+			"
+		;;
+	*)
+		# check if --track, --no-track, or --no-guess was specified
+		# if so, disable DWIM mode
+		local flags="--track --no-track --no-guess" track_opt="--track"
+		if [ "$GIT_COMPLETION_CHECKOUT_NO_GUESS" = "1" ] ||
+		   [ -n "$(__git_find_on_cmdline "$flags")" ]; then
+			track_opt=''
+		fi
+		__git_complete_refs $track_opt
+		;;
+	esac
+}
+
+_gck ()
 {
 	__git_has_doubledash && return
 
@@ -1867,9 +1950,84 @@ _git_clone ()
 	esac
 }
 
+_gcl ()
+{
+	case "$cur" in
+	--*)
+		__gitcomp "
+			--local
+			--no-hardlinks
+			--shared
+			--reference
+			--quiet
+			--no-checkout
+			--bare
+			--mirror
+			--origin
+			--upload-pack
+			--template=
+			--depth
+			--single-branch
+			--no-tags
+			--branch
+			--recurse-submodules
+			--no-single-branch
+			--shallow-submodules
+			"
+		return
+		;;
+	esac
+}
+
 __git_untracked_file_modes="all no normal"
 
 _git_commit ()
+{
+	case "$prev" in
+	-c|-C)
+		__git_complete_refs
+		return
+		;;
+	esac
+
+	case "$cur" in
+	--cleanup=*)
+		__gitcomp "default scissors strip verbatim whitespace
+			" "" "${cur##--cleanup=}"
+		return
+		;;
+	--reuse-message=*|--reedit-message=*|\
+	--fixup=*|--squash=*)
+		__git_complete_refs --cur="${cur#*=}"
+		return
+		;;
+	--untracked-files=*)
+		__gitcomp "$__git_untracked_file_modes" "" "${cur##--untracked-files=}"
+		return
+		;;
+	--*)
+		__gitcomp "
+			--all --author= --signoff --verify --no-verify
+			--edit --no-edit
+			--amend --include --only --interactive
+			--dry-run --reuse-message= --reedit-message=
+			--reset-author --file= --message= --template=
+			--cleanup= --untracked-files --untracked-files=
+			--verbose --quiet --fixup= --squash=
+			--patch --short --date --allow-empty
+			"
+		return
+	esac
+
+	if __git rev-parse --verify --quiet HEAD >/dev/null; then
+		__git_complete_index_file "--committable"
+	else
+		# This is the first commit
+		__git_complete_index_file "--cached"
+	fi
+}
+
+_gct ()
 {
 	case "$prev" in
 	-c|-C)
@@ -2469,6 +2627,28 @@ _git_pull ()
 	__git_complete_remote_or_refspec
 }
 
+_gpl ()
+{
+	__git_complete_strategy && return
+
+	case "$cur" in
+	--recurse-submodules=*)
+		__gitcomp "$__git_fetch_recurse_submodules" "" "${cur##--recurse-submodules=}"
+		return
+		;;
+	--*)
+		__gitcomp "
+			--rebase --no-rebase
+			--autostash --no-autostash
+			$__git_merge_options
+			$__git_fetch_options
+		"
+		return
+		;;
+	esac
+	__git_complete_remote_or_refspec
+}
+
 __git_push_recurse_submodules="check on-demand only"
 
 __git_complete_force_with_lease ()
@@ -2488,6 +2668,44 @@ __git_complete_force_with_lease ()
 }
 
 _git_push ()
+{
+	case "$prev" in
+	--repo)
+		__gitcomp_nl "$(__git_remotes)"
+		return
+		;;
+	--recurse-submodules)
+		__gitcomp "$__git_push_recurse_submodules"
+		return
+		;;
+	esac
+	case "$cur" in
+	--repo=*)
+		__gitcomp_nl "$(__git_remotes)" "" "${cur##--repo=}"
+		return
+		;;
+	--recurse-submodules=*)
+		__gitcomp "$__git_push_recurse_submodules" "" "${cur##--recurse-submodules=}"
+		return
+		;;
+	--force-with-lease=*)
+		__git_complete_force_with_lease "${cur##--force-with-lease=}"
+		return
+		;;
+	--*)
+		__gitcomp "
+			--all --mirror --tags --dry-run --force --verbose
+			--quiet --prune --delete --follow-tags
+			--receive-pack= --repo= --set-upstream
+			--force-with-lease --force-with-lease= --recurse-submodules=
+		"
+		return
+		;;
+	esac
+	__git_complete_remote_or_refspec
+}
+
+_gph ()
 {
 	case "$prev" in
 	--repo)
@@ -2636,6 +2854,56 @@ _git_stage ()
 }
 
 _git_status ()
+{
+	local complete_opt
+	local untracked_state
+
+	case "$cur" in
+	--ignore-submodules=*)
+		__gitcomp "none untracked dirty all" "" "${cur##--ignore-submodules=}"
+		return
+		;;
+	--untracked-files=*)
+		__gitcomp "$__git_untracked_file_modes" "" "${cur##--untracked-files=}"
+		return
+		;;
+	--column=*)
+		__gitcomp "
+			always never auto column row plain dense nodense
+			" "" "${cur##--column=}"
+		return
+		;;
+	--*)
+		__gitcomp "
+			--short --branch --porcelain --long --verbose
+			--untracked-files= --ignore-submodules= --ignored
+			--column= --no-column
+			"
+		return
+		;;
+	esac
+
+	untracked_state="$(__git_get_option_value "-u" "--untracked-files=" \
+		"$__git_untracked_file_modes" "status.showUntrackedFiles")"
+
+	case "$untracked_state" in
+	no)
+		# --ignored option does not matter
+		complete_opt=
+		;;
+	all|normal|*)
+		complete_opt="--cached --directory --no-empty-directory --others"
+
+		if [ -n "$(__git_find_on_cmdline "--ignored")" ]; then
+			complete_opt="$complete_opt --ignored --exclude=*"
+		fi
+		;;
+	esac
+
+	__git_complete_index_file "$complete_opt"
+}
+
+_gst ()
 {
 	local complete_opt
 	local untracked_state
