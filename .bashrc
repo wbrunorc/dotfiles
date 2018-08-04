@@ -5,13 +5,13 @@ if [ ! "$TERM" = "" ]; then
 
     USER="wcardoso"
     USER_ALIAS="W. Bruno"
-    GREEN="\[$(tput setaf 2)\]"
-    CYANN="\[$(tput setaf 6)\]"
-    MAGENTA="\[$(tput setaf 5)\]"
-    BLUE="\[$(tput setaf 4)\]"
-    YELLOW="\[$(tput setaf 3)\]"
-    WHITE="\[$(tput setaf 7)\]"
-    RESET="\[$(tput sgr 0)\]"
+    GREEN="\[$(tput -T xterm-256color setaf 2)\]"
+    CYANN="\[$(tput -T xterm-256color setaf 6)\]"
+    MAGENTA="\[$(tput -T xterm-256color setaf 5)\]"
+    BLUE="\[$(tput -T xterm-256color setaf 4)\]"
+    YELLOW="\[$(tput -T xterm-256color setaf 3)\]"
+    WHITE="\[$(tput -T xterm-256color setaf 7)\]"
+    RESET="\[$(tput -T xterm-256color sgr 0)\]"
 
     GIT_PS1_SHOWDIRTYSTATE=true
 
