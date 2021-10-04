@@ -5,7 +5,7 @@ if [ ! "$TERM" = "" ]; then
         source /usr/local/etc/bash_completion.d/git-prompt.sh
         #source /usr/local/git/contrib/completion/git-completion.bash
 
-        USER="wcardoso"
+        USER="bruninho"
         USER_ALIAS="W. Bruno"
         GREEN="\[$(tput -T xterm-256color setaf 2)\]"
         CYANN="\[$(tput -T xterm-256color setaf 6)\]"
